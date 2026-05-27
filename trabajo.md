@@ -21,32 +21,40 @@ No quieren ejecutar todos los pipelines siempre.
 Requisitos
 Parte 1 — Estructura monorepo
 * **Crear estructura con múltiples componentes.**
-  * **Solución**: Se ha diseñado un monorepo modular e integrado con las siguientes carpetas específicas:
-    * [`frontend/`](file:///c:/Users/ADM/Downloads/LAB7/frontend): Aplicación de cliente SPA construida con Vanilla JS/HTML5.
-    * [`backend/`](file:///c:/Users/ADM/Downloads/LAB7/backend): API de servicio REST ligera basada en módulos HTTP nativos.
-    * [`infraestructura/`](file:///c:/Users/ADM/Downloads/LAB7/infraestructura): Archivos Terraform (.tf) y scripts de análisis estático de configuración.
-    * [`documentacion/`](file:///c:/Users/ADM/Downloads/LAB7/documentacion): Guías arquitectónicas y especificación de endpoints en archivos Markdown.
+  * **Solución**: He creado las carpetas necesarias para simular la estructura completa del monorepo de la empresa. Las carpetas y componentes que he organizado son:
+    * [`frontend/`](file:///c:/Users/ADM/Downloads/LAB7/frontend): Contiene una aplicación de cliente sencilla tipo SPA hecha con HTML5 y Vanilla JS.
+    * [`backend/`](file:///c:/Users/ADM/Downloads/LAB7/backend): Una API REST básica programada en Node.js usando módulos HTTP nativos.
+    * [`infraestructura/`](file:///c:/Users/ADM/Downloads/LAB7/infraestructura): Archivos de Terraform (`.tf`) y scripts de validación local.
+    * [`documentacion/`](file:///c:/Users/ADM/Downloads/LAB7/documentacion): Guías del sistema en formato Markdown (como el archivo de endpoints `API.md`).
 
 Parte 2 — Selective execution
 * **Configurar workflows que:**
-  * **Detecten cambios relevantes**: Mediante el uso del orquestador principal [`ci.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/ci.yml) implementado con la acción `dorny/paths-filter@v3`, que rastrea cambios exactos en las carpetas `frontend/**`, `backend/**`, `infraestructura/**` y `documentacion/**`.
-  * **Ejecuten solo pipelines necesarios**: Los workflows de `frontend`, `backend` y `infraestructura` se encuentran condicionados individualmente con cláusulas `if` que evalúan las salidas del job de detección de rutas (`if: needs.detect-changes.outputs.<componente> == 'true'`).
-  * **Ignoren cambios documentación cuando proceda**: Si solo se detectan cambios en `documentacion/**`, no se inicializa ningún runner de testing o construcción pesado de software, previniendo el consumo inútil de recursos. En el reporte final, estos cambios se catalogan y se marcan como `✅ Auto-approved`.
+  * **Detecten cambios relevantes**: En el workflow orquestador principal [`ci.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/ci.yml) he configurado la acción `dorny/paths-filter@v3` para que detecte si hay cambios en los directorios `frontend/**`, `backend/**`, `infraestructura/**` o `documentacion/**`.
+  * **Ejecuten solo pipelines necesarios**: Usando las salidas de ese paso de detección de rutas, puse condicionales `if` en cada uno de los jobs (`frontend-pipeline`, `backend-pipeline`, `infraestructura-pipeline`) de manera que solo se ejecuten si su carpeta respectiva tiene cambios (`== 'true'`).
+  * **Ignoren cambios documentación cuando proceda**: Si solo modifico un archivo de la carpeta `documentacion/`, el pipeline principal omite los runners costosos de tests y compilaciones. En el reporte final simplemente se marca automáticamente como `✅ Auto-approved` para no gastar minutos de servidor de forma inútil.
+  * **Evidencia de Ejecución Selectiva**:
+    Aquí está la captura de pantalla de cuando edité únicamente el frontend y los pipelines de backend e infraestructura se omitieron automáticamente (se muestran con el círculo blanco vacío de "Skipped"):
+    ![Ejecución Selectiva - Solo Frontend](documentacion/images/selective_execution_evidence.png)
 
 Parte 3 — Optimización
 * **Reducir:**
-  * **Tiempo de ejecución**: Configuración de caché de dependencias npm basada en el hash de los archivos `package.json` de cada subcomponente. Además, se utiliza el **Node.js Native Test Runner** (`node --test`), eliminando descargas lentas de frameworks externos pesados de testing y acelerando el arranque de las pruebas unitarias a menos de **1 segundo**.
-  * **Duplicación lógica**: Centralización de tareas comunes en acciones locales reutilizables y workflows parametrizados.
-  * **Uso innecesario de runners**: Asegurado al 100% mediante la ejecución selectiva (sólo ejecuta los pipelines cuyos archivos han cambiado en el commit o pull request actual).
+  * **Tiempo de ejecución**: He configurado la caché para las dependencias de Node.js en las acciones utilizando `cache: 'npm'`. Además, decidí usar el test runner nativo de Node.js (`node --test`) en lugar de instalar librerías pesadas externas de test como Jest. Esto redujo el tiempo de descarga a 0 segundos y los tests unitarios arrancan en menos de **1 segundo**.
+  * **Duplicación lógica**: Centralicé los pasos repetitivos en una Composite Action y en workflows reutilizables parametrizados.
+  * **Uso innecesario de runners**: Gracias a la ejecución selectiva (Parte 2), si un componente no ha sido modificado en el commit actual, su job no se lanza y dejamos los runners libres para otros proyectos.
 
 Parte 4 — Reutilización
 * **Implementar:**
-  * **Reusable workflows**: Creación de workflows reutilizables parametrizados en [`.github/workflows/reusable-pipeline.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/reusable-pipeline.yml) (usado por frontend y backend) y [`.github/workflows/reusable-infra.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/reusable-infra.yml) (usado por infraestructura).
-  * **Acciones compuestas locales**: Creación de una Composite Action en [`.github/actions/setup-node-env/action.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/actions/setup-node-env/action.yml) que abstrae y unifica la instalación de Node.js y la gestión inteligente de caché de dependencias en una sola directiva DRY.
+  * **Reusable workflows**: He creado dos workflows reutilizables parametrizados en [`.github/workflows/reusable-pipeline.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/reusable-pipeline.yml) (que sirve tanto para el frontend como para el backend) y [`.github/workflows/reusable-infra.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/reusable-infra.yml) (para validaciones de Terraform).
+  * **Acciones compuestas locales (Composite Actions)**: En [`.github/actions/setup-node-env/action.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/actions/setup-node-env/action.yml) implementé una acción compuesta local que unifica el setup de Node y la caché de dependencias para evitar repetir estos pasos en los workflows reutilizables.
 
 Parte 5 — Reporting
 * **Generar resumen final:**
-  * **Componentes afectados / Pipelines ejecutados / Jobs omitidos**: Implementado con el job `reporting-pipeline` en [`ci.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/ci.yml#L64), configurado para ejecutarse de forma mandatoria al finalizar (`if: always()`). Este job recopila en tiempo real los resultados de todas las etapas anteriores y construye una tabla en formato Markdown en el **Job Summary** interactivo de GitHub, dando visibilidad total sobre qué componentes cambiaron, cuáles corrieron exitosamente y cuáles fueron omitidos de forma optimizada (`Skipped`).
+  * **Componentes afectados / Pipelines ejecutados / Jobs omitidos**: He añadido un job final llamado `reporting-pipeline` en [`ci.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/ci.yml#L64) que se ejecuta siempre (`if: always()`). Este job lee los resultados de los jobs anteriores y escribe una tabla interactiva en Markdown en el **Job Summary** de GitHub Actions, donde se ve exactamente qué cambió, qué se ejecutó y qué se omitió de forma optimizada.
+  * **Evidencia del Reporte Generado**:
+    ![Resumen de ejecución generado dinámicamente](documentacion/images/reporting_summary_evidence.png)
+  * **Evidencia de Ejecución Completa con todos los checks en verde**:
+    Esta captura de pantalla muestra cuando modifiqué todos los componentes a la vez y todos los pipelines corrieron y pasaron correctamente:
+    ![Ejecución Completa de todos los Pipelines](documentacion/images/full_execution_evidence.png)
 
 
 Restricciones
