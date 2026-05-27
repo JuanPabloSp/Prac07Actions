@@ -1,0 +1,18 @@
+{
+  "name": "monorepo-frontend",
+  "version": "1.0.0",
+  "description": "Frontend component of the monorepo",
+  "main": "src/app.js",
+  "scripts": {
+    "lint": "node scripts/lint.js",
+    "test": "node --test src/**/*.test.js",
+    "build": "node scripts/build.js"
+  },
+  "keywords": [
+    "monorepo",
+    "frontend"
+  ],
+  "author": "Antigravity",
+  "license": "MIT",
+  "devDependencies": {}
+}

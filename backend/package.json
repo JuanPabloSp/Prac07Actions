@@ -1,0 +1,18 @@
+{
+  "name": "monorepo-backend",
+  "version": "1.0.0",
+  "description": "Backend component of the monorepo",
+  "main": "src/server.js",
+  "scripts": {
+    "lint": "node scripts/lint.js",
+    "test": "node --test src/**/*.test.js",
+    "build": "node scripts/build.js"
+  },
+  "keywords": [
+    "monorepo",
+    "backend"
+  ],
+  "author": "Antigravity",
+  "license": "MIT",
+  "devDependencies": {}
+}

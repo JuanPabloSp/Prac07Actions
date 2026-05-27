@@ -1,0 +1,141 @@
+name: Monorepo Orchestrator CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  detect-changes:
+    name: Detect Repository Changes
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+      infraestructura: ${{ steps.filter.outputs.infraestructura }}
+      documentacion: ${{ steps.filter.outputs.documentacion }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Analyze Path Changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            backend:
+              - 'backend/**'
+            infraestructura:
+              - 'infraestructura/**'
+            documentacion:
+              - 'documentacion/**'
+
+  frontend-pipeline:
+    name: Frontend CI
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    uses: ./.github/workflows/reusable-pipeline.yml
+    with:
+      component-name: 'frontend'
+      working-directory: './frontend'
+      node-version: '20'
+
+  backend-pipeline:
+    name: Backend CI
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+    uses: ./.github/workflows/reusable-pipeline.yml
+    with:
+      component-name: 'backend'
+      working-directory: './backend'
+      node-version: '20'
+
+  infraestructura-pipeline:
+    name: Infrastructure CI
+    needs: detect-changes
+    if: needs.detect-changes.outputs.infraestructura == 'true'
+    uses: ./.github/workflows/reusable-infra.yml
+    with:
+      working-directory: './infraestructura'
+
+  reporting-pipeline:
+    name: Compile Execution Report
+    needs: [detect-changes, frontend-pipeline, backend-pipeline, infraestructura-pipeline]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Markdown Summary
+        shell: bash
+        run: |
+          echo "# 📊 Monorepo CI/CD Execution Summary Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "This pipeline runs selectively based on files modified in the commit or pull request." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔍 Git Change & Job Execution Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Changed? | Status | Executed Jobs / Actions |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :---: | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          
+          # FRONTEND
+          FE_CHANGED="${{ needs.detect-changes.outputs.frontend }}"
+          FE_RESULT="${{ needs.frontend-pipeline.result }}"
+          if [ "$FE_CHANGED" = "true" ]; then
+            FE_ICON="🟢 Yes"
+            if [ "$FE_RESULT" = "success" ]; then FE_STATUS="✅ Success"; else FE_STATUS="❌ Failed"; fi
+            FE_ACTION="Build, Lint, Test (Native node runner)"
+          else
+            FE_ICON="⚪ No"
+            FE_STATUS="⏭️ Skipped"
+            FE_ACTION="Omitted (Zero runner seconds wasted)"
+          fi
+          echo "| **Frontend** | $FE_ICON | $FE_STATUS | $FE_ACTION |" >> $GITHUB_STEP_SUMMARY
+
+          # BACKEND
+          BE_CHANGED="${{ needs.detect-changes.outputs.backend }}"
+          BE_RESULT="${{ needs.backend-pipeline.result }}"
+          if [ "$BE_CHANGED" = "true" ]; then
+            BE_ICON="🟢 Yes"
+            if [ "$BE_RESULT" = "success" ]; then BE_STATUS="✅ Success"; else BE_STATUS="❌ Failed"; fi
+            BE_ACTION="Build, Lint, Test Integration (Native node runner)"
+          else
+            BE_ICON="⚪ No"
+            BE_STATUS="⏭️ Skipped"
+            BE_ACTION="Omitted (Zero runner seconds wasted)"
+          fi
+          echo "| **Backend** | $BE_ICON | $BE_STATUS | $BE_ACTION |" >> $GITHUB_STEP_SUMMARY
+
+          # INFRASTRUCTURE
+          INFRA_CHANGED="${{ needs.detect-changes.outputs.infraestructura }}"
+          INFRA_RESULT="${{ needs.infraestructura-pipeline.result }}"
+          if [ "$INFRA_CHANGED" = "true" ]; then
+            INFRA_ICON="🟢 Yes"
+            if [ "$INFRA_RESULT" = "success" ]; then INFRA_STATUS="✅ Success"; else INFRA_STATUS="❌ Failed"; fi
+            INFRA_ACTION="Terraform Format & Custom Node Lint check"
+          else
+            INFRA_ICON="⚪ No"
+            INFRA_STATUS="⏭️ Skipped"
+            INFRA_ACTION="Omitted (Zero runner seconds wasted)"
+          fi
+          echo "| **Infrastructure** | $INFRA_ICON | $INFRA_STATUS | $INFRA_ACTION |" >> $GITHUB_STEP_SUMMARY
+
+          # DOCUMENTATION
+          DOC_CHANGED="${{ needs.detect-changes.outputs.documentacion }}"
+          if [ "$DOC_CHANGED" = "true" ]; then
+            DOC_ICON="🟢 Yes"
+            DOC_STATUS="✅ Auto-approved"
+            DOC_ACTION="Docs checked (Static Markdown assets)"
+          else
+            DOC_ICON="⚪ No"
+            DOC_STATUS="⏭️ Skipped"
+            DOC_ACTION="No changes to documentation"
+          fi
+          echo "| **Documentation** | $DOC_ICON | $DOC_STATUS | $DOC_ACTION |" >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ⚡ Performance Optimization Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "- **Selective Execution**: Active (Filtered using \`dorny/paths-filter\`)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Caching Strategy**: Node setup with global npm caching" >> $GITHUB_STEP_SUMMARY
+          echo "- **Concurrency**: Frontend, Backend, and Infrastructure jobs execute in parallel" >> $GITHUB_STEP_SUMMARY

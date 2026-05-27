@@ -1,0 +1,45 @@
+name: Reusable Node.js Component Pipeline
+
+on:
+  workflow_call:
+    inputs:
+      component-name:
+        description: 'Name of the component (e.g., frontend, backend)'
+        required: true
+        type: string
+      working-directory:
+        description: 'Directory path of the component (e.g., ./frontend)'
+        required: true
+        type: string
+      node-version:
+        description: 'Node.js version to configure'
+        required: false
+        type: string
+        default: '20'
+
+jobs:
+  validate-and-build:
+    name: Build, Lint & Test (${{ inputs.component-name }})
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node Environment
+        uses: ./.github/actions/setup-node-env
+        with:
+          node-version: ${{ inputs.node-version }}
+          working-directory: ${{ inputs.working-directory }}
+
+      - name: Run Linting Analysis
+        run: npm run lint
+
+      - name: Run Unit Tests
+        run: npm run test
+
+      - name: Compile and Build Production Assets
+        run: npm run build

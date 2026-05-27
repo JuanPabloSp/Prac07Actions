@@ -1,0 +1,33 @@
+name: Reusable Infrastructure Validation Pipeline
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: 'Directory path of the infra files'
+        required: false
+        type: string
+        default: './infraestructura'
+
+jobs:
+  validate-infra:
+    name: Terraform Static & Security Validation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+        
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "latest"
+
+      - name: Check Format (terraform fmt)
+        run: terraform fmt -check
+
+      - name: Run Custom Terraform Lint & Security Check
+        run: node scripts/validate-tf.js
