@@ -21,40 +21,40 @@ No quieren ejecutar todos los pipelines siempre.
 Requisitos
 Parte 1 — Estructura monorepo
 * **Crear estructura con múltiples componentes.**
-  * **Solución**: He creado las carpetas necesarias para simular la estructura completa del monorepo de la empresa. Las carpetas y componentes que he organizado son:
-    * [`frontend/`](file:///c:/Users/ADM/Downloads/LAB7/frontend): Contiene una aplicación de cliente sencilla tipo SPA hecha con HTML5 y Vanilla JS.
-    * [`backend/`](file:///c:/Users/ADM/Downloads/LAB7/backend): Una API REST básica programada en Node.js usando módulos HTTP nativos.
-    * [`infraestructura/`](file:///c:/Users/ADM/Downloads/LAB7/infraestructura): Archivos de Terraform (`.tf`) y scripts de validación local.
-    * [`documentacion/`](file:///c:/Users/ADM/Downloads/LAB7/documentacion): Guías del sistema en formato Markdown (como el archivo de endpoints `API.md`).
+  * **Solución**: He organizado el proyecto en las siguientes carpetas para separar bien los componentes:
+    * [`frontend/`](file:///c:/Users/ADM/Downloads/LAB7/frontend): Código HTML y JS de la aplicación.
+    * [`backend/`](file:///c:/Users/ADM/Downloads/LAB7/backend): Servidor API básico hecho con Node.js nativo.
+    * [`infraestructura/`](file:///c:/Users/ADM/Downloads/LAB7/infraestructura): Archivos Terraform (`.tf`) y sus scripts.
+    * [`documentacion/`](file:///c:/Users/ADM/Downloads/LAB7/documentacion): Guías en Markdown (como `API.md`).
 
 Parte 2 — Selective execution
 * **Configurar workflows que:**
-  * **Detecten cambios relevantes**: En el workflow orquestador principal [`ci.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/ci.yml) he configurado la acción `dorny/paths-filter@v3` para que detecte si hay cambios en los directorios `frontend/**`, `backend/**`, `infraestructura/**` o `documentacion/**`.
-  * **Ejecuten solo pipelines necesarios**: Usando las salidas de ese paso de detección de rutas, puse condicionales `if` en cada uno de los jobs (`frontend-pipeline`, `backend-pipeline`, `infraestructura-pipeline`) de manera que solo se ejecuten si su carpeta respectiva tiene cambios (`== 'true'`).
-  * **Ignoren cambios documentación cuando proceda**: Si solo modifico un archivo de la carpeta `documentacion/`, el pipeline principal omite los runners costosos de tests y compilaciones. En el reporte final simplemente se marca automáticamente como `✅ Auto-approved` para no gastar minutos de servidor de forma inútil.
-  * **Evidencia de Ejecución Selectiva**:
-    Aquí está la captura de pantalla de cuando edité únicamente el frontend y los pipelines de backend e infraestructura se omitieron automáticamente (se muestran con el círculo blanco vacío de "Skipped"):
-    ![Ejecución Selectiva - Solo Frontend](documentacion/images/selective_execution_evidence.png)
+  * **Detecten cambios relevantes**: Usé `dorny/paths-filter@v3` en el orquestador [`ci.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/ci.yml) para saber en qué carpetas hay cambios.
+  * **Ejecuten solo pipelines necesarios**: Puse condicionales `if` en cada job para que solo corra si su carpeta respectiva cambió (`== 'true'`).
+  * **Ignoren cambios documentación cuando proceda**: Si solo se editan Markdown en `documentacion/`, no se gasta tiempo de runner pesado y se aprueba solo automáticamente.
+  * **Evidencia (Ejecución Selectiva)**:
+    Aquí se ve que al modificar solo un archivo, los otros pipelines se saltan (aparecen en blanco con `Skipped`):
+    ![Ejecución Selectiva - Saltando jobs](documentacion/images/captura3.png)
 
 Parte 3 — Optimización
 * **Reducir:**
-  * **Tiempo de ejecución**: He configurado la caché para las dependencias de Node.js en las acciones utilizando `cache: 'npm'`. Además, decidí usar el test runner nativo de Node.js (`node --test`) en lugar de instalar librerías pesadas externas de test como Jest. Esto redujo el tiempo de descarga a 0 segundos y los tests unitarios arrancan en menos de **1 segundo**.
-  * **Duplicación lógica**: Centralicé los pasos repetitivos en una Composite Action y en workflows reutilizables parametrizados.
-  * **Uso innecesario de runners**: Gracias a la ejecución selectiva (Parte 2), si un componente no ha sido modificado en el commit actual, su job no se lanza y dejamos los runners libres para otros proyectos.
+  * **Tiempo de ejecución**: Configuré la caché de npm (`cache: 'npm'`) y decidí utilizar el test runner nativo de Node.js (`node --test`) para no bajar frameworks pesados. Los tests corren en menos de **1 segundo**.
+  * **Duplicación lógica**: Junté el setup repetitivo en una composite action y creé workflows que se pueden reutilizar.
+  * **Uso de runners**: Al saltarse los jobs no modificados, no malgastamos runners de la empresa.
 
 Parte 4 — Reutilización
 * **Implementar:**
-  * **Reusable workflows**: He creado dos workflows reutilizables parametrizados en [`.github/workflows/reusable-pipeline.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/reusable-pipeline.yml) (que sirve tanto para el frontend como para el backend) y [`.github/workflows/reusable-infra.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/reusable-infra.yml) (para validaciones de Terraform).
-  * **Acciones compuestas locales (Composite Actions)**: En [`.github/actions/setup-node-env/action.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/actions/setup-node-env/action.yml) implementé una acción compuesta local que unifica el setup de Node y la caché de dependencias para evitar repetir estos pasos en los workflows reutilizables.
+  * **Reusable workflows**: Creé [`reusable-pipeline.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/reusable-pipeline.yml) (para frontend y backend) y [`reusable-infra.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/reusable-infra.yml) (para Terraform).
+  * **Composite Action**: Hice una acción local en [`setup-node-env/action.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/actions/setup-node-env/action.yml) para configurar Node y la caché de dependencias en un solo paso reutilizable.
 
 Parte 5 — Reporting
 * **Generar resumen final:**
-  * **Componentes afectados / Pipelines ejecutados / Jobs omitidos**: He añadido un job final llamado `reporting-pipeline` en [`ci.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/ci.yml#L64) que se ejecuta siempre (`if: always()`). Este job lee los resultados de los jobs anteriores y escribe una tabla interactiva en Markdown en el **Job Summary** de GitHub Actions, donde se ve exactamente qué cambió, qué se ejecutó y qué se omitió de forma optimizada.
-  * **Evidencia del Reporte Generado**:
-    ![Resumen de ejecución generado dinámicamente](documentacion/images/reporting_summary_evidence.png)
-  * **Evidencia de Ejecución Completa con todos los checks en verde**:
-    Esta captura de pantalla muestra cuando modifiqué todos los componentes a la vez y todos los pipelines corrieron y pasaron correctamente:
-    ![Ejecución Completa de todos los Pipelines](documentacion/images/full_execution_evidence.png)
+  * **Resumen en Markdown**: Creé el job `reporting-pipeline` en [`ci.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/ci.yml#L64) que corre al final (`if: always()`). Genera una tabla de resumen en el **Job Summary** de GitHub indicando los estados de cada componente.
+  * **Evidencia del Resumen generado**:
+    ![Tabla Resumen de Ejecución](documentacion/images/captura2.png)
+  * **Evidencia de Ejecución Completa (Todo en verde)**:
+    Aquí se ve la ejecución cuando se modifican todos los archivos en paralelo y todos los checks pasan correctamente:
+    ![Todos los pipelines en verde](documentacion/images/captura1.png)
 
 
 Restricciones
