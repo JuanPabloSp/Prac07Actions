@@ -1,4 +1,4 @@
-// Frontend Application Logic
+// Frontend Application Logic (Modified to trigger all pipelines)
 console.log('🚀 Monorepo Frontend app initialized (v1.0.1).');
 
 function greetUser() {
