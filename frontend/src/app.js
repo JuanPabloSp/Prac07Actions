@@ -1,5 +1,5 @@
 // Frontend Application Logic
-console.log('🚀 Monorepo Frontend app initialized.');
+console.log('🚀 Monorepo Frontend app initialized (v1.0.1).');
 
 function greetUser() {
     const time = new Date().toLocaleTimeString();
