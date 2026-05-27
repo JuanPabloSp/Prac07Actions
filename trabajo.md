@@ -22,14 +22,14 @@ Requisitos
 Parte 1 — Estructura monorepo
 * **Crear estructura con múltiples componentes.**
   * **Solución**: He organizado el proyecto en las siguientes carpetas para separar bien los componentes:
-    * [`frontend/`](file:///c:/Users/ADM/Downloads/LAB7/frontend): Código HTML y JS de la aplicación.
-    * [`backend/`](file:///c:/Users/ADM/Downloads/LAB7/backend): Servidor API básico hecho con Node.js nativo.
-    * [`infraestructura/`](file:///c:/Users/ADM/Downloads/LAB7/infraestructura): Archivos Terraform (`.tf`) y sus scripts.
-    * [`documentacion/`](file:///c:/Users/ADM/Downloads/LAB7/documentacion): Guías en Markdown (como `API.md`).
+    * `frontend/`: Código HTML y JS de la aplicación.
+    * `backend/`: Servidor API básico hecho con Node.js nativo.
+    * `infraestructura/`: Archivos Terraform (`.tf`) y sus scripts.
+    * `documentacion/`: Guías en Markdown (como `API.md`).
 
 Parte 2 — Selective execution
 * **Configurar workflows que:**
-  * **Detecten cambios relevantes**: Usé `dorny/paths-filter@v3` en el orquestador [`ci.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/ci.yml) para saber en qué carpetas hay cambios.
+  * **Detecten cambios relevantes**: Usé `dorny/paths-filter@v3` en el orquestador `.github/workflows/ci.yml` para saber en qué carpetas hay cambios.
   * **Ejecuten solo pipelines necesarios**: Puse condicionales `if` en cada job para que solo corra si su carpeta respectiva cambió (`== 'true'`).
   * **Ignoren cambios documentación cuando proceda**: Si solo se editan Markdown en `documentacion/`, no se gasta tiempo de runner pesado y se aprueba solo automáticamente.
   * **Evidencia (Ejecución Selectiva)**:
@@ -44,12 +44,12 @@ Parte 3 — Optimización
 
 Parte 4 — Reutilización
 * **Implementar:**
-  * **Reusable workflows**: Creé [`reusable-pipeline.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/reusable-pipeline.yml) (para frontend y backend) y [`reusable-infra.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/reusable-infra.yml) (para Terraform).
-  * **Composite Action**: Hice una acción local en [`setup-node-env/action.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/actions/setup-node-env/action.yml) para configurar Node y la caché de dependencias en un solo paso reutilizable.
+  * **Reusable workflows**: Creé `.github/workflows/reusable-pipeline.yml` (para frontend y backend) y `.github/workflows/reusable-infra.yml` (para Terraform).
+  * **Composite Action**: Hice una acción local en `.github/actions/setup-node-env/action.yml` para configurar Node y la caché de dependencias en un solo paso reutilizable.
 
 Parte 5 — Reporting
 * **Generar resumen final:**
-  * **Resumen en Markdown**: Creé el job `reporting-pipeline` en [`ci.yml`](file:///c:/Users/ADM/Downloads/LAB7/.github/workflows/ci.yml#L64) que corre al final (`if: always()`). Genera una tabla de resumen en el **Job Summary** de GitHub indicando los estados de cada componente.
+  * **Resumen en Markdown**: Creé el job `reporting-pipeline` en `.github/workflows/ci.yml` que corre al final (`if: always()`). Genera una tabla de resumen en el **Job Summary** de GitHub indicando los estados de cada componente.
   * **Evidencia del Resumen generado**:
     ![Tabla Resumen de Ejecución](documentacion/images/captura2.png)
   * **Evidencia de Ejecución Completa (Todo en verde)**:
